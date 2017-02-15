@@ -52,7 +52,7 @@ func (s *MemoryGroup) Apply(d *cgroupData) (err error) {
 		}
 	}
 	defer func() {
-		if err != nil && !cgroups.IsV2Error(err) {
+		if err != nil {
 			os.RemoveAll(path)
 		}
 	}()

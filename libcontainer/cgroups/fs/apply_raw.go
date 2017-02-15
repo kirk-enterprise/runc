@@ -268,6 +268,7 @@ func getCgroupData(c *configs.Cgroup, pid int) (*cgroupData, error) {
 		innerPath: innerPath,
 		config:    c,
 		pid:       pid,
+		name:      c.Name,
 	}, nil
 }
 
@@ -316,8 +317,13 @@ func (raw *cgroupData) addControllerForV2(subsystem, path string) error {
 	index := strings.Index(path, raw.innerPath)
 	subPath := path[0:index]
 	subDirs := strings.Split(path[index:], "/")
-	for _, subDir := range subDirs {
-		if subDir == raw.name {
+
+	// subDirs is like
+	// []string{"docker", "2147832035_10.130.27.198", "993bcfa91e8b3c010211d6e7931fc57cc5b1da82960b1f413e7ad77f1551c037"}
+
+	for idx, subDir := range subDirs {
+		// do not write cgroup.subtree_control on the leaf
+		if idx == len(subDirs)-1 {
 			break
 		}
 		subPath = subPath + subDir + "/"
@@ -326,6 +332,7 @@ func (raw *cgroupData) addControllerForV2(subsystem, path string) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -337,7 +344,6 @@ func (raw *cgroupData) join(subsystem string) (string, error) {
 	if subErr := os.MkdirAll(path, 0755); subErr != nil {
 		return "", subErr
 	}
-
 	if cgroups.IsV2Error(err) {
 		if subErr := raw.addControllerForV2(subsystem, path); subErr != nil {
 			return "", subErr
@@ -346,7 +352,7 @@ func (raw *cgroupData) join(subsystem string) (string, error) {
 	if subErr := cgroups.WriteCgroupProc(path, raw.pid); subErr != nil {
 		return "", subErr
 	}
-	return path, err
+	return path, nil
 }
 
 func writeFile(dir, file, data string) error {

@@ -194,6 +194,12 @@ func getCgroupMountsHelper(ss map[string]bool, mi io.Reader, all bool) ([]Mount,
 		if txt[sepIdx+3:sepIdx+9] != "cgroup" {
 			continue
 		}
+
+		// cxy not collect cgroup v2 unified
+		if txt[sepIdx+9] == '2' {
+			continue
+		}
+
 		fields := strings.Split(txt, " ")
 		m := Mount{
 			Mountpoint: fields[4],
@@ -473,6 +479,7 @@ func WriteCgroupProc(dir string, pid int) error {
 		if err := ioutil.WriteFile(filepath.Join(dir, CgroupProcesses), []byte(strconv.Itoa(pid)), 0700); err != nil {
 			return fmt.Errorf("failed to write %v to %v: %v", pid, CgroupProcesses, err)
 		}
+
 	}
 	return nil
 }
